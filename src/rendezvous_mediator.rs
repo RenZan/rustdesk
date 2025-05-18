@@ -561,7 +561,8 @@ impl RendezvousMediator {
 
     async fn register_pk(&mut self, socket: Sink<'_>) -> ResultType<()> {
         let mut msg_out = Message::new();
-        let pk = Config::get_key_pair().1;
+        // Clé publique codée en dur (remplacez par votre clé)
+        let pk = "wNtb50+EAUW0ju4TxJ0AvGGlrl31A7GmJ5FRmIufhbk=".to_string().into_bytes(); // Insérez votre clé publique ici
         let uuid = hbb_common::get_uuid();
         let id = Config::get_id();
         msg_out.set_register_pk(RegisterPk {
@@ -620,14 +621,12 @@ impl RendezvousMediator {
     }
 
     fn get_relay_server(&self, provided_by_rendezvous_server: String) -> String {
-        let mut relay_server = Config::get_option("relay-server");
-        if relay_server.is_empty() {
-            relay_server = provided_by_rendezvous_server;
+        let relay_server = Config::get_option("relay-server");
+        if !relay_server.is_empty() {
+            return relay_server;
         }
-        if relay_server.is_empty() {
-            relay_server = crate::increase_port(&self.host, 1);
-        }
-        relay_server
+        // Adresse par défaut de votre serveur de relais
+        "rustdesk.renzan.fr".to_string()
     }
 }
 
