@@ -60,14 +60,20 @@ jobs:
             exit 1
           fi
           echo "Before modification:"
-          grep "RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "PROD_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "EXE_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "RENDEZVOUS_SERVERS" "$CONFIG_FILE" || true
           grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
-          sed -i 's/pub const RENDEZVOUS_SERVER: \&str = \".*\";/pub const RENDEZVOUS_SERVER: \&str = \"'"$RENDEZVOUS_SERVER"'\";/' "$CONFIG_FILE"
-          sed -i 's/pub const PUBLIC_RS_PUB_KEY: \&str = \".*\";/pub const PUBLIC_RS_PUB_KEY: \&str = \"'"$RS_PUB_KEY"'\";/' "$CONFIG_FILE"
+          sed -i 's/pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());/pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());/' "$CONFIG_FILE"
+          sed -i 's/pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();/pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());/' "$CONFIG_FILE"
+          sed -i 's/pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\[.*\];/pub const RENDEZVOUS_SERVERS: \&\[&str\] = &["'"$RENDEZVOUS_SERVER"'"];/' "$CONFIG_FILE"
           echo "After modification:"
-          grep "RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "PROD_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "EXE_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "RENDEZVOUS_SERVERS" "$CONFIG_FILE" || true
           grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
           echo "Customized config.rs with RENDEZVOUS_SERVER: $RENDEZVOUS_SERVER"
+          echo "Note: PUBLIC_RS_PUB_KEY not found in config.rs; relying on env var RS_PUB_KEY."
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
@@ -144,6 +150,9 @@ jobs:
         shell: bash
 
       - name: Build rustdesk
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
         run: |
           python3 .\build.py --portable --hwcodec --flutter --vram
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
