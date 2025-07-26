@@ -68,14 +68,12 @@ jobs:
           perl -0777 -pe 's|pub\s+const\s+RENDEZVOUS_SERVERS:\s*&\[\s*&str\s*\]\s*=\s*&\[\s*"[^"]*"\s*\]\s*;|pub const RENDEZVOUS_SERVERS: \&[&str] = &["'"$RENDEZVOUS_SERVER"'"];|s' -i "$CONFIG_FILE"
           # Remove backup created by sed
           rm -f "${CONFIG_FILE}''"
-
-          #1. Remove any previous PUBLIC_RS_PUB_KEY definition
+          
+          # 1. Remove any previous PUBLIC_RS_PUB_KEY definition
           sed -i'' '/^pub const PUBLIC_RS_PUB_KEY:/d' "$CONFIG_FILE"
           
-          #2. Append the new one
-          cat <<EOF >>"$CONFIG_FILE"
-          pub const PUBLIC_RS_PUB_KEY: &str = "$RS_PUB_KEY";
-          EOF
+          # 2. Append the new one (no indentation issues)
+          echo "pub const PUBLIC_RS_PUB_KEY: &str = \"$RS_PUB_KEY\";" >> "$CONFIG_FILE"
 
           echo "After:"
           grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|PUBLIC_RS_PUB_KEY' "$CONFIG_FILE" || true
