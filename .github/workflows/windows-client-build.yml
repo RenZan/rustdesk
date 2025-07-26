@@ -44,6 +44,25 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Customize Rendezvous Server and Key
+        shell: bash
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+        run: |
+          if [ -z "$RENDEZVOUS_SERVER" ] || [ -z "$RS_PUB_KEY" ]; then
+            echo "Error: RENDEZVOUS_SERVER or RS_PUB_KEY not set."
+            exit 1
+          fi
+          CONFIG_FILE="libs/hbb_common/src/config.rs"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "Error: config.rs not found."
+            exit 1
+          fi
+          sed -i "s/pub const RENDEZVOUS_SERVER: \&str = \".*\";/pub const RENDEZVOUS_SERVER: \&str = \"$RENDEZVOUS_SERVER\";/" "$CONFIG_FILE"
+          sed -i "s/pub const PUBLIC_RS_PUB_KEY: \&str = \".*\";/pub const PUBLIC_RS_PUB_KEY: \&str = \"$RS_PUB_KEY\";/" "$CONFIG_FILE"
+          echo "Customized config.rs with RENDEZVOUS_SERVER: $RENDEZVOUS_SERVER"
+
       - name: Restore bridge files
         uses: actions/download-artifact@master
         with:
@@ -115,9 +134,6 @@ jobs:
         shell: bash
 
       - name: Build rustdesk
-        env:
-          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
-          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
         run: |
           python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
@@ -150,7 +166,7 @@ jobs:
                 Write-Output "printer_driver_adapter.dll, checksums do not match, ignore the file."
             }
           } catch {
-              Write-Host "Ingore the printer driver error."
+              Write-Host "Ignore the printer driver error."
           }
 
       - name: find Runner.res
