@@ -66,7 +66,7 @@ jobs:
           grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
           sed -i 's|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
           sed -i 's|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
-          sed -i 's|pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\["rs-ny.rustdesk.com"\];|pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\["'"$RENDEZVOUS_SERVER"'"\];|' "$CONFIG_FILE"
+          sed -i "s|pub const RENDEZVOUS_SERVERS: \&\[&str\] = \&\[\"rs-ny.rustdesk.com\"\];|pub const RENDEZVOUS_SERVERS: \&\[&str\] = \&\[\"$RENDEZVOUS_SERVER\"\];|" "$CONFIG_FILE"
           echo "Adding PUBLIC_RS_PUB_KEY to config.rs"
           echo 'pub const PUBLIC_RS_PUB_KEY: &str = "'"$RS_PUB_KEY"'";' >> "$CONFIG_FILE"
           echo "After modification:"
@@ -237,3 +237,14 @@ jobs:
         with:
           name: rustdesk-windows-installer
           path: rustdesk-custom-${{ env.VERSION }}-setup.exe
+
+      # Alternative for portable zip (uncomment if preferred over installer)
+      # - name: Zip Portable Artifact
+      #   run: |
+      #     Compress-Archive -Path ./rustdesk/* -DestinationPath rustdesk-portable.zip
+      #   shell: powershell
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: rustdesk-windows-portable
+      #     path: rustdesk-portable.zip
