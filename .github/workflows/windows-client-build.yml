@@ -64,16 +64,17 @@ jobs:
           grep "EXE_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
           grep "RENDEZVOUS_SERVERS" "$CONFIG_FILE" || true
           grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
-          sed -i 's/pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());/pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());/' "$CONFIG_FILE"
-          sed -i 's/pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();/pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());/' "$CONFIG_FILE"
-          sed -i 's/pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\[.*\];/pub const RENDEZVOUS_SERVERS: \&\[&str\] = &["'"$RENDEZVOUS_SERVER"'"];/' "$CONFIG_FILE"
+          sed -i 's|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
+          sed -i 's|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
+          sed -i 's|pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\["rs-ny.rustdesk.com"\];|pub const RENDEZVOUS_SERVERS: \&\[&str\] = &\["'"$RENDEZVOUS_SERVER"'"\];|' "$CONFIG_FILE"
+          echo "Adding PUBLIC_RS_PUB_KEY to config.rs"
+          echo 'pub const PUBLIC_RS_PUB_KEY: &str = "'"$RS_PUB_KEY"'";' >> "$CONFIG_FILE"
           echo "After modification:"
           grep "PROD_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
           grep "EXE_RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
           grep "RENDEZVOUS_SERVERS" "$CONFIG_FILE" || true
           grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
-          echo "Customized config.rs with RENDEZVOUS_SERVER: $RENDEZVOUS_SERVER"
-          echo "Note: PUBLIC_RS_PUB_KEY not found in config.rs; relying on env var RS_PUB_KEY."
+          echo "Customized config.rs with RENDEZVOUS_SERVER: $RENDEZVOUS_SERVER and RS_PUB_KEY: $RS_PUB_KEY"
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
@@ -168,9 +169,9 @@ jobs:
             Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/printer_driver_adapter.zip -OutFile printer_driver_adapter.zip
             Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/sha256sums -OutFile sha256sums
 
-            $checksum_driver = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*rustdesk_printer_driver_v4\.zip$').Matches.Groups[1].Value
+            $checksum_driver = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) *rustdesk_printer_driver_v4\.zip$').Matches.Groups[1].Value
             $downloadsum_driver = Get-FileHash -Path rustdesk_printer_driver_v4.zip -Algorithm SHA256
-            $checksum_dll = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*printer_driver_adapter\.zip$').Matches.Groups[1].Value
+            $checksum_dll = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) *printer_driver_adapter\.zip$').Matches.Groups[1].Value
             $downloadsum_dll = Get-FileHash -Path printer_driver_adapter.zip -Algorithm SHA256
             if ($checksum_driver -eq $downloadsum_driver.Hash -and $checksum_dll -eq $downloadsum_dll.Hash) {
                 Write-Output "rustdesk_printer_driver_v4, checksums match, extract the file."
