@@ -59,8 +59,14 @@ jobs:
             echo "Error: config.rs not found."
             exit 1
           fi
-          sed -i "s/pub const RENDEZVOUS_SERVER: \&str = \".*\";/pub const RENDEZVOUS_SERVER: \&str = \"$RENDEZVOUS_SERVER\";/" "$CONFIG_FILE"
-          sed -i "s/pub const PUBLIC_RS_PUB_KEY: \&str = \".*\";/pub const PUBLIC_RS_PUB_KEY: \&str = \"$RS_PUB_KEY\";/" "$CONFIG_FILE"
+          echo "Before modification:"
+          grep "RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
+          sed -i 's/pub const RENDEZVOUS_SERVER: \&str = \".*\";/pub const RENDEZVOUS_SERVER: \&str = \"'"$RENDEZVOUS_SERVER"'\";/' "$CONFIG_FILE"
+          sed -i 's/pub const PUBLIC_RS_PUB_KEY: \&str = \".*\";/pub const PUBLIC_RS_PUB_KEY: \&str = \"'"$RS_PUB_KEY"'\";/' "$CONFIG_FILE"
+          echo "After modification:"
+          grep "RENDEZVOUS_SERVER" "$CONFIG_FILE" || true
+          grep "PUBLIC_RS_PUB_KEY" "$CONFIG_FILE" || true
           echo "Customized config.rs with RENDEZVOUS_SERVER: $RENDEZVOUS_SERVER"
 
       - name: Restore bridge files
@@ -106,6 +112,10 @@ jobs:
         with:
           prefix-key: windows-2022
 
+      - name: Clean Rust Cache
+        run: cargo clean
+        shell: bash
+
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@v11
         with:
@@ -135,7 +145,7 @@ jobs:
 
       - name: Build rustdesk
         run: |
-          python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
+          python3 .\build.py --portable --hwcodec --flutter --vram
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
 
           Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
@@ -189,8 +199,31 @@ jobs:
           name: topmostwindow-artifacts
           path: "./rustdesk"
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+        shell: powershell
+
+      - name: Create Inno Setup Script
+        run: |
+          echo '[Setup]' > rustdesk.iss
+          echo 'AppName=RustDesk Custom' >> rustdesk.iss
+          echo 'AppVersion=${{ env.VERSION }}' >> rustdesk.iss
+          echo 'DefaultDirName={autopf}\RustDesk' >> rustdesk.iss
+          echo 'OutputDir=.' >> rustdesk.iss
+          echo 'OutputBaseFilename=rustdesk-custom-${{ env.VERSION }}-setup' >> rustdesk.iss
+          echo 'Compression=lzma' >> rustdesk.iss
+          echo 'SolidCompression=yes' >> rustdesk.iss
+          echo '[Files]' >> rustdesk.iss
+          echo 'Source: "rustdesk\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs' >> rustdesk.iss
+          echo '[Icons]' >> rustdesk.iss
+          echo 'Name: "{autoprograms}\RustDesk"; Filename: "{app}\rustdesk.exe"' >> rustdesk.iss
+        shell: powershell
+
+      - name: Build Installer
+        run: iscc rustdesk.iss
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows
-          path: rustdesk
+          name: rustdesk-windows-installer
+          path: rustdesk-custom-${{ env.VERSION }}-setup.exe
