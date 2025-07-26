@@ -65,8 +65,7 @@ jobs:
           # Git-Bash sed needs -i with a suffix, then we delete the backup
           sed -i'' 's|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
           sed -i'' 's|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
-          sed -i'' 's|pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["rs-ny.rustdesk.com"\];|pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["'"$RENDEZVOUS_SERVER"'" ];|' "$CONFIG_FILE"
-
+          sed -i'' 's|pub const RENDEZVOUS_SERVERS: &[&str] = &\["rs-ny.rustdesk.com"\];|pub const RENDEZVOUS_SERVERS: &[&str] = &["'"$RENDEZVOUS_SERVER"'"];|' "$CONFIG_FILE"
           # Remove backup created by sed
           rm -f "${CONFIG_FILE}''"
 
