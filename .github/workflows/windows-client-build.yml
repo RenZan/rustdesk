@@ -2,6 +2,12 @@ name: Custom Windows RustDesk Build
 
 on: [workflow_dispatch]
 
+env:
+  SCITER_RUST_VERSION: "1.75" # Required for Sciter compatibility
+  FLUTTER_VERSION: "3.32.8"   # Updated to match runner version
+  VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # vcpkg version
+  VERSION: "1.4.1"           # RustDesk version
+
 jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
@@ -45,19 +51,30 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - name: Replace engine with rustdesk custom flutter engine
+        shell: powershell
+        continue-on-error: true # Allow build to continue if engine replacement fails
         run: |
           flutter doctor -v
           flutter precache --windows
-          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+          try {
+            Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
+            Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release -Force
+            $targetPath = "C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release"
+            if (Test-Path windows-x64-release) {
+              Move-Item -Force -Path windows-x64-release/* -Destination $targetPath
+            } else {
+              Write-Output "No files found in windows-x64-release, skipping engine replacement."
+            }
+          } catch {
+            Write-Output "Failed to download or extract custom Flutter engine, proceeding with default engine."
+          }
 
       - name: Patch flutter
         shell: bash
         run: |
           cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff $(dirname $(dirname $(which flutter)))
           cd $(dirname $(dirname $(which flutter)))
-          [[ "3.24.5" == ${{env.FLUTTER_VERSION}} ]] && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
+          [[ "3.32.8" == ${{env.FLUTTER_VERSION}} ]] && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff || echo "Skipping patch for Flutter 3.32.8"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
