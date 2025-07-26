@@ -2,6 +2,12 @@ name: Custom Windows RustDesk Build
 
 on: [workflow_dispatch]
 
+env:
+  SCITER_RUST_VERSION: "1.75" # Required for Sciter compatibility
+  FLUTTER_VERSION: "3.24.5"   # Stable Flutter version from original workflow
+  VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # vcpkg version
+  VERSION: "1.4.1"           # RustDesk version
+
 jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
@@ -18,19 +24,9 @@ jobs:
       fail-fast: false
 
   build-for-windows-flutter:
-    name: ${{ matrix.job.target }}
+    name: Windows x86_64 Flutter Build
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
-    runs-on: ${{ matrix.job.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        job:
-          - {
-              target: x86_64-pc-windows-msvc,
-              os: windows-2022,
-              arch: x86_64,
-              vcpkg-triplet: x64-windows-static,
-            }
+    runs-on: windows-2022
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -51,9 +47,13 @@ jobs:
           path: ./
 
       - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: ${{ env.LLVM_VERSION }}
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/LLVM-15.0.6-win64.exe -OutFile LLVM-15.0.6-win64.exe
+          Start-Process -FilePath .\LLVM-15.0.6-win64.exe -ArgumentList "/S" -Wait
+          $env:Path += ";C:\Program Files\LLVM\bin"
+          echo "PATH=$env:Path" >> $env:GITHUB_ENV
+          clang --version
 
       - name: Install flutter
         uses: subosito/flutter-action@v2.12.0
@@ -80,12 +80,12 @@ jobs:
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.SCITER_RUST_VERSION }}
-          targets: ${{ matrix.job.target }}
+          targets: x86_64-pc-windows-msvc
           components: "rustfmt"
 
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ matrix.job.os }}
+          prefix-key: windows-2022
 
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@v11
@@ -96,11 +96,11 @@ jobs:
 
       - name: Install vcpkg dependencies
         env:
-          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+          VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
-            --triplet ${{ matrix.job.vcpkg-triplet }} \
+            --triplet x64-windows-static \
             --x-install-root="$VCPKG_ROOT/installed"; then
             find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
               echo "$_1:"
@@ -111,7 +111,7 @@ jobs:
             done
             exit 1
           fi
-          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
+          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-x64-windows-static-rel-out.log" || true
         shell: bash
 
       - name: Build rustdesk
@@ -150,7 +150,7 @@ jobs:
                 Write-Output "printer_driver_adapter.dll, checksums do not match, ignore the file."
             }
           } catch {
-              Write-Host "Ingore the printer driver error."
+              Write-Host "Ignore the printer driver error."
           }
 
       - name: find Runner.res
