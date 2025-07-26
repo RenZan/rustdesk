@@ -1,0 +1,23 @@
+name: Custom RustDesk Build
+
+on: [workflow_dispatch]
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Rust
+      uses: rust-lang/setup-rust-toolchain@v1
+      with:
+        target: x86_64-pc-windows-gnu
+    - name: Build
+      env:
+        RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+        RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+      run: cargo build --release --target x86_64-pc-windows-gnu --features hwcodec
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rustdesk-windows
+        path: target/x86_64-pc-windows-gnu/release/rustdesk.exe
