@@ -212,23 +212,30 @@ jobs:
         run: choco install innosetup -y
         shell: powershell
 
-      - name: Create Inno Setup Script
+      - name: Create Inno Setup Script (UTF-8, no BOM)
+        shell: pwsh
         run: |
-          echo '[Setup]' > rustdesk.iss
-          echo 'AppName=RustDesk Custom' >> rustdesk.iss
-          echo 'AppVersion=${{ env.VERSION }}' >> rustdesk.iss
-          echo 'DefaultDirName={autopf}\RustDesk' >> rustdesk.iss
-          echo 'OutputDir=.' >> rustdesk.iss
-          echo 'OutputBaseFilename=rustdesk-custom-${{ env.VERSION }}-setup' >> rustdesk.iss
-          echo 'Compression=lzma' >> rustdesk.iss
-          echo 'SolidCompression=yes' >> rustdesk.iss
-          echo '[Files]' >> rustdesk.iss
-          echo 'Source: "rustdesk\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs' >> rustdesk.iss
-          echo '[Icons]' >> rustdesk.iss
-          echo 'Name: "{autoprograms}\RustDesk"; Filename: "{app}\rustdesk.exe"' >> rustdesk.iss
-        shell: powershell
+          $script = @"
+          [Setup]
+          AppName=RustDesk Custom
+          AppVersion=${{ env.VERSION }}
+          DefaultDirName={autopf}\RustDesk
+          OutputDir=.
+          OutputBaseFilename=rustdesk-custom-${{ env.VERSION }}-setup
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "rustdesk\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{autoprograms}\RustDesk"; Filename: "{app}\rustdesk.exe"
+          "@
+          # Ensure UTF-8 **without** BOM
+          [System.IO.File]::WriteAllLines("$PWD\rustdesk.iss", $script, [System.Text.UTF8Encoding]::new($false))
 
       - name: Build Installer
+        shell: pwsh
         run: iscc rustdesk.iss
 
       - name: Upload artifact
