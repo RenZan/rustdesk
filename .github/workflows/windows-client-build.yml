@@ -69,8 +69,13 @@ jobs:
           # Remove backup created by sed
           rm -f "${CONFIG_FILE}''"
 
-          # Append public key
-          perl -0777 -pe 's|pub\s+const\s+PUBLIC_RS_PUB_KEY:\s*&str\s*=\s*"[^"]*"\s*;|pub const PUBLIC_RS_PUB_KEY: &str = "'"$RS_PUB_KEY"'";|' -i "$CONFIG_FILE"
+          #1. Remove any previous PUBLIC_RS_PUB_KEY definition
+          sed -i'' '/^pub const PUBLIC_RS_PUB_KEY:/d' "$CONFIG_FILE"
+          
+          #2. Append the new one
+          cat <<EOF >>"$CONFIG_FILE"
+          pub const PUBLIC_RS_PUB_KEY: &str = "$RS_PUB_KEY";
+          EOF
 
           echo "After:"
           grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|PUBLIC_RS_PUB_KEY' "$CONFIG_FILE" || true
