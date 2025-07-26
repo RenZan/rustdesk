@@ -2,30 +2,13 @@ name: Custom Windows RustDesk Build
 
 on: [workflow_dispatch]
 
-env:
-  SCITER_RUST_VERSION: "1.75" # Required for Sciter compatibility
-  FLUTTER_VERSION: "3.24.5"   # Stable Flutter version from original workflow
-  VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # vcpkg version
-  VERSION: "1.4.1"           # RustDesk version
-
 jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
 
-  build-RustDeskTempTopMostWindow:
-    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
-    with:
-      upload-artifact: false
-      target: windows-2022
-      configuration: Release
-      platform: x64
-      target_version: Windows10
-    strategy:
-      fail-fast: false
-
   build-for-windows-flutter:
     name: Windows x86_64 Flutter Build
-    needs: [build-RustDeskTempTopMostWindow, generate-bridge]
+    needs: generate-bridge
     runs-on: windows-2022
     steps:
       - name: Export GitHub Actions cache environment variables
@@ -166,12 +149,6 @@ jobs:
             echo "list ./libs/portable/Runner.res";
             ls -l ./libs/portable/Runner.res;
           fi
-
-      - name: Download RustDeskTempTopMostWindow artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: topmostwindow-artifacts
-          path: "./rustdesk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
