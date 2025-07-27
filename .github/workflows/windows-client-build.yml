@@ -35,16 +35,6 @@ jobs:
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
     runs-on: windows-2022
     steps:
-
-      - name: Sync upstream
-        shell: bash
-        run: |
-          git remote add upstream https://github.com/rustdesk/rustdesk.git || true
-          git fetch upstream
-          git checkout main
-          git merge upstream/main --allow-unrelated-histories -m "auto-sync"
-          # push le merge si tu veux vraiment le sauvegarder
-          # git push origin main
       
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -57,6 +47,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Sync upstream
+        shell: bash
+        run: |
+          git remote add upstream https://github.com/rustdesk/rustdesk.git || true
+          git fetch upstream
+          git checkout main
+          git merge upstream/main --allow-unrelated-histories -m "auto-sync"
+          # push le merge si tu veux vraiment le sauvegarder
+          git push origin main
 
       - name: Customize Rendezvous Server and Key
         shell: bash
