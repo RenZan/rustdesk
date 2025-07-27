@@ -48,14 +48,20 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Sync upstream & reset submodules
+      - name: Sync upstream & repair submodules
         shell: bash
         run: |
+          # add / fetch upstream
           git remote add upstream https://github.com/rustdesk/rustdesk.git || true
           git fetch upstream
+      
+          # fast-forward or merge
           git checkout main
           git merge upstream/main --allow-unrelated-histories -m "auto-sync"
-          git submodule foreach 'git fetch origin && git reset --hard origin/master'
+      
+          # 🛠️  repair submodules
+          git submodule sync --recursive
+          git submodule update --init --recursive --force --remote
 
       - name: Customize Rendezvous Server and Key
         shell: bash
