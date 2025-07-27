@@ -246,6 +246,15 @@ jobs:
           name: rustdesk-windows-installer
           path: rustdesk-custom-${{ env.VERSION }}-setup.exe
 
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: latest
+          name: Latest build
+          files: rustdesk-custom-${{ env.VERSION }}-setup.exe
+          overwrite: true
+
       # Alternative for portable zip (uncomment if preferred over installer)
       # - name: Zip Portable Artifact
       #   run: |
