@@ -60,24 +60,19 @@ jobs:
           [[ -f "$CONFIG_FILE" ]] || { echo "config.rs not found"; exit 1; }
 
           echo "Before:"
-          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|PUBLIC_RS_PUB_KEY' "$CONFIG_FILE" || true
+          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|SERVER_PK' "$CONFIG_FILE" || true
 
-          # Git-Bash sed needs -i with a suffix, then we delete the backup
+          # Rendez-vous server
           sed -i'' 's|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());|pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
           sed -i'' 's|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();|pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("'"$RENDEZVOUS_SERVER"'".to_owned());|' "$CONFIG_FILE"
           perl -0777 -pe 's|pub\s+const\s+RENDEZVOUS_SERVERS:\s*&\[\s*&str\s*\]\s*=\s*&\[\s*"[^"]*"\s*\]\s*;|pub const RENDEZVOUS_SERVERS: \&[&str] = &["'"$RENDEZVOUS_SERVER"'"];|s' -i "$CONFIG_FILE"
-          # Remove backup created by sed
-          rm -f "${CONFIG_FILE}''"
-          
-          # 1. Remove any previous PUBLIC_RS_PUB_KEY definition
-          sed -i'' '/^pub const PUBLIC_RS_PUB_KEY:/d' "$CONFIG_FILE"
-          
-          # 2. Append the new one (no indentation issues)
-          echo "pub const PUBLIC_RS_PUB_KEY: &str = \"$RS_PUB_KEY\";" >> "$CONFIG_FILE"
+
+          # Clé publique du serveur (Flutter)
+          sed -i'' '/^pub const SERVER_PK:/d' "$CONFIG_FILE"
+          echo 'pub const SERVER_PK: &str = "'"$RS_PUB_KEY"'";' >> "$CONFIG_FILE"
 
           echo "After:"
-          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|PUBLIC_RS_PUB_KEY' "$CONFIG_FILE" || true
-
+          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|SERVER_PK' "$CONFIG_FILE" || true
       - name: Restore bridge files
         uses: actions/download-artifact@master
         with:
