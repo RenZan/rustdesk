@@ -1,6 +1,9 @@
 name: Custom Flutter RustDesk Windows Build
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1'
 
 env:
   SCITER_RUST_VERSION: "1.75"
@@ -32,6 +35,17 @@ jobs:
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
     runs-on: windows-2022
     steps:
+
+      - name: Sync upstream
+        shell: bash
+        run: |
+          git remote add upstream https://github.com/rustdesk/rustdesk.git || true
+          git fetch upstream
+          git checkout main
+          git merge upstream/main --allow-unrelated-histories -m "auto-sync"
+          # push le merge si tu veux vraiment le sauvegarder
+          # git push origin main
+      
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
         with:
