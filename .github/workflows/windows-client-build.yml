@@ -71,8 +71,12 @@ jobs:
           sed -i'' '/^pub const SERVER_PK:/d' "$CONFIG_FILE"
           echo 'pub const SERVER_PK: &str = "'"$RS_PUB_KEY"'";' >> "$CONFIG_FILE"
 
+          # Remplacer la clé officielle RS_PUB_KEY (base64)
+          sed -i'' 's|^pub const RS_PUB_KEY: \&str = .*|pub const RS_PUB_KEY: \&str = "'"$(printf '%s' "$RS_PUB_KEY" | xxd -r -p | base64 -w0)"'";|' "$CONFIG_FILE"
+
           echo "After:"
-          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|SERVER_PK' "$CONFIG_FILE" || true
+          grep -E '(PROD|EXE)_RENDEZVOUS_SERVER|RENDEZVOUS_SERVERS|RS_PUB_KEY' "$CONFIG_FILE" || true
+          
       - name: Restore bridge files
         uses: actions/download-artifact@master
         with:
