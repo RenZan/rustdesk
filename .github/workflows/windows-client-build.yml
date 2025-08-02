@@ -3,7 +3,7 @@ name: Custom Flutter RustDesk Windows Build
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * 1'
+    - cron: '0 19 * * *'
 
 env:
   SCITER_RUST_VERSION: "1.75"
